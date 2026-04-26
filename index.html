@@ -2,10 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Cube Painting Teaching Tool - Tabs</title>
+<title>Cube Teaching Tool (Final)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body { margin:0; font-family:Arial; background:#f8fafc; color:#111;}
+
 .tabs { display:flex; background:#e2e8f0; }
 .tab { padding:12px 20px; cursor:pointer; font-weight:bold;}
 .active { background:white; border-bottom:3px solid #3b82f6;}
@@ -27,6 +28,15 @@ button { margin:5px; padding:10px; border:none; border-radius:6px; cursor:pointe
   position:absolute; padding:6px 10px; background:#111; color:white;
   border-radius:6px; font-size:12px; pointer-events:none; display:none;
 }
+
+.overlayLabel{
+  position:absolute;
+  background:#111;
+  color:white;
+  padding:4px 8px;
+  border-radius:6px;
+  font-size:12px;
+}
 </style>
 </head>
 <body>
@@ -36,8 +46,9 @@ button { margin:5px; padding:10px; border:none; border-radius:6px; cursor:pointe
 <div class="tab" onclick="switchTab(2)">Application</div>
 </div>
 
-<div id="tab1" class="container">
+<div class="container">
 <div id="top">
+
 <div class="controls">
 <button class="b1" onclick="highlight(1)">1 side</button>
 <button class="b2" onclick="highlight(2)">2 sides</button>
@@ -53,48 +64,47 @@ button { margin:5px; padding:10px; border:none; border-radius:6px; cursor:pointe
 </div>
 
 <div id="tooltip" class="tooltip"></div>
+<div id="overlay"></div>
+
 </div>
 
 <div id="bottom">
-<h3>Concept Mapping</h3>
-<div id="info">Click a button to begin</div>
-<div id="bars"></div>
+<h3 id="title">Concept</h3>
+<div id="content">
+Click a button to explore.
 </div>
 </div>
 
-<div id="tab2" class="container" style="display:none;">
-<div style="padding:20px;">
-<h3>Application Question</h3>
-<p>Hassan had a rectangular block with a square base. He painted all faces and cut it into 1-cm cubes.</p>
-<p>There were <b>68 cubes with exactly 2 faces painted</b>. The height is <b>9 cm</b>.</p>
-<p><b>Find the volume of the block.</b></p>
-
-<h3>Guided Thinking</h3>
-<p>2 faces painted → edge cubes</p>
-<p>Edges formula: 4(n−2) + 4(9−2)</p>
-
-<p>Let base side = n</p>
-<p>68 = 4(n−2) + 4(7)</p>
-<p>68 = 4(n−2) + 28</p>
-<p>40 = 4(n−2)</p>
-<p>10 = n−2 → n = 12</p>
-
-<p>Volume = 12 × 12 × 9 = <b>1296 cm³</b></p>
-</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.134/examples/js/controls/OrbitControls.js"></script>
 
 <script>
+
+let mode = "concept";
+
 function switchTab(n){
-document.getElementById("tab1").style.display = n===1 ? "flex" : "none";
-document.getElementById("tab2").style.display = n===2 ? "flex" : "none";
-document.querySelectorAll(".tab").forEach((t,i)=>{
-t.classList.toggle("active", i===n-1);
-});
+  mode = n===1 ? "concept" : "application";
+
+  document.querySelectorAll(".tab").forEach((t,i)=>{
+    t.classList.toggle("active", i===n-1);
+  });
+
+  if(mode==="concept"){
+    document.getElementById("title").innerHTML="Concept";
+    document.getElementById("content").innerHTML="Click buttons to explore painted sides.";
+    resetColors();
+    clearOverlay();
+  } else {
+    document.getElementById("title").innerHTML="Application";
+    document.getElementById("content").innerHTML=
+    "2 faces painted → edges. We group them into strips.";
+    runApplication();
+  }
 }
 
+// ===== SCENE (UNCHANGED CORE) =====
 let scene=new THREE.Scene();
 scene.background=new THREE.Color(0xffffff);
 
@@ -123,6 +133,7 @@ let geo=new THREE.BoxGeometry(1,1,1);
 let mat=new THREE.MeshStandardMaterial({color:0xd1d5db});
 let cube=new THREE.Mesh(geo,mat);
 
+// subtle edges
 let edges=new THREE.EdgesGeometry(geo);
 let line=new THREE.LineSegments(edges,new THREE.LineBasicMaterial({color:0x888888}));
 cube.add(line);
@@ -141,6 +152,7 @@ cubes.push(cube);
 
 }}}
 
+// ===== TOOLTIP =====
 let raycaster=new THREE.Raycaster();
 let mouse=new THREE.Vector2();
 let tooltip=document.getElementById("tooltip");
@@ -157,6 +169,7 @@ let c=intersects[0].object;
 tooltip.style.display="block";
 tooltip.style.left=e.clientX+10+"px";
 tooltip.style.top=e.clientY+10+"px";
+
 let s=c.userData.sides;
 tooltip.innerHTML=s+" side"+(s>1?"s":"")+" painted";
 }else{
@@ -164,16 +177,9 @@ tooltip.style.display="none";
 }
 });
 
-function animate(){
-requestAnimationFrame(animate);
-renderer.render(scene,camera);
-}
-animate();
-
+// ===== FUNCTIONS =====
 function resetColors(){
 cubes.forEach(c=>c.material.color.set(0xd1d5db));
-document.getElementById("info").innerHTML="Reset";
-document.getElementById("bars").innerHTML="";
 }
 
 function highlight(type){
@@ -186,10 +192,51 @@ if(type==3)c.material.color.set(0xef4444);
 });
 }
 
+// ===== APPLICATION (ADDED ONLY) =====
+function clearOverlay(){
+document.getElementById("overlay").innerHTML="";
+}
+
+function addLabel(text, x, y){
+let div=document.createElement("div");
+div.className="overlayLabel";
+div.innerHTML=text;
+div.style.left=x+"px";
+div.style.top=y+"px";
+document.getElementById("overlay").appendChild(div);
+}
+
+function runApplication(){
+resetColors();
+highlight(2); // edges
+
+clearOverlay();
+
+setTimeout(()=>{
+addLabel("Top edges (4 strips)", 50, 80);
+addLabel("Bottom edges (4 strips)", 50, 120);
+addLabel("Vertical edges (4 strips)", 50, 160);
+},500);
+
+setTimeout(()=>{
+document.getElementById("content").innerHTML=
+"Total 12 strips → together = 68 cubes";
+},2000);
+
+}
+
+// ===== CONTROLS =====
 function zoomIn(){camera.position.multiplyScalar(0.8);}
 function zoomOut(){camera.position.multiplyScalar(1.2);}
 function rotateLeft(){scene.rotation.y += 0.2;}
 function rotateRight(){scene.rotation.y -= 0.2;}
+
+// ===== LOOP =====
+function animate(){
+requestAnimationFrame(animate);
+renderer.render(scene,camera);
+}
+animate();
 
 </script>
 </body>
