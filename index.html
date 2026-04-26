@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cube Painting Teaching Tool</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body { margin:0; font-family:Arial; background:#0f172a; color:white;}
+.container { display:flex; flex-direction:column; height:100vh;}
+#top { height:55%; position:relative;}
+#bottom { height:45%; padding:20px; background:#020617;}
+.controls { position:absolute; top:10px; left:10px; z-index:10;}
+button { margin:5px; padding:10px; border:none; border-radius:6px; cursor:pointer; font-weight:bold;}
+.b1 {background:#3b82f6;} .b2 {background:#facc15;color:black;} .b3 {background:#ef4444;} .b4 {background:#64748b;}
+canvas {display:block;}
+.bar {height:30px; margin:8px 0; display:flex; align-items:center; padding-left:10px; border-radius:6px;}
+.blue {background:#3b82f6;} .yellow {background:#facc15;color:black;} .red {background:#ef4444;}
+</style>
+</head>
+<body>
+<div class="container">
+<div id="top">
+<div class="controls">
+<button class="b1" onclick="highlight(1)">1 side</button>
+<button class="b2" onclick="highlight(2)">2 sides</button>
+<button class="b3" onclick="highlight(3)">3 sides</button>
+<button class="b4" onclick="resetColors()">Reset</button>
+<button style="background:#22c55e;" onclick="showBase()">Touch only base</button>
+</div>
+</div>
+<div id="bottom">
+<h3>Real Question Mapping</h3>
+<div id="info">Click a button to begin</div>
+<div id="bars"></div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+let scene=new THREE.Scene();
+let camera=new THREE.PerspectiveCamera(75,window.innerWidth/(window.innerHeight*0.55),0.1,1000);
+let renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth,window.innerHeight*0.55);
+document.getElementById("top").appendChild(renderer.domElement);
+let controls=new THREE.OrbitControls(camera,renderer.domElement);
+camera.position.set(10,10,10);
+let light=new THREE.PointLight(0xffffff,1);
+light.position.set(10,10,10);
+scene.add(light);
+
+let cubes=[];
+let L=6,W=5,H=4,spacing=1.2;
+
+for(let x=0;x<L;x++){
+for(let y=0;y<W;y++){
+for(let z=0;z<H;z++){
+let geo=new THREE.BoxGeometry(1,1,1);
+let mat=new THREE.MeshStandardMaterial({color:0xaaaaaa});
+let cube=new THREE.Mesh(geo,mat);
+cube.position.set((x-L/2)*spacing,(y-W/2)*spacing,(z-H/2)*spacing);
+let sides=0;
+if(x==0||x==L-1) sides++;
+if(y==0||y==W-1) sides++;
+if(z==0||z==H-1) sides++;
+cube.userData.sides=sides;
+scene.add(cube);
+cubes.push(cube);
+}}}
+
+function animate(){requestAnimationFrame(animate);renderer.render(scene,camera);} animate();
+
+function resetColors(){
+cubes.forEach(c=>c.material.color.set(0xaaaaaa));
+document.getElementById("bars").innerHTML="";
+document.getElementById("info").innerHTML="Reset.";
+}
+
+function highlight(type){
+cubes.forEach(c=>{
+if(c.userData.sides===type){
+if(type==1)c.material.color.set(0x3b82f6);
+if(type==2)c.material.color.set(0xfacc15);
+if(type==3)c.material.color.set(0xef4444);
+}else c.material.color.set(0x222222);
+});
+updateBars(type);
+}
+
+function updateBars(type){
+let bars=document.getElementById("bars");
+let info=document.getElementById("info");
+bars.innerHTML="";
+if(type==1){
+info.innerHTML="1 side painted → Face cubes";
+bars.innerHTML+=`<div class="bar blue">20 × 6</div>`;
+}
+if(type==2){
+info.innerHTML="2 sides painted → Edge cubes (−2 each side)";
+bars.innerHTML+=`<div class="bar yellow">(20−2), (6−2), (15−2)</div>`;
+}
+if(type==3){
+info.innerHTML="3 sides painted → Corner cubes";
+bars.innerHTML+=`<div class="bar red">8 corners</div>`;
+}
+}
+
+function showBase(){
+let info=document.getElementById("info");
+let bars=document.getElementById("bars");
+
+cubes.forEach(c=>{
+if(c.position.z < -1){ c.material.color.set(0x3b82f6);}
+else c.material.color.set(0x111111);
+});
+info.innerHTML="Step 1: Base = 20 × 6";
+bars.innerHTML=`<div class="bar blue">20 × 6</div>`;
+
+setTimeout(()=>{
+cubes.forEach(c=>{
+if(c.position.z < -1){
+if(Math.abs(c.position.x)>2||Math.abs(c.position.y)>2){
+c.material.color.set(0xfacc15);
+}}});
+info.innerHTML="Step 2: Remove edges";
+},1000);
+
+setTimeout(()=>{
+cubes.forEach(c=>{
+if(c.position.z < -1){
+if(Math.abs(c.position.x)>2||Math.abs(c.position.y)>2){
+c.material.color.set(0x111111);
+}else c.material.color.set(0x22c55e);
+}});
+info.innerHTML="Final: (20 − 2) × (6 − 2) = 18 × 4 = 72";
+bars.innerHTML=`<div class="bar" style="background:#22c55e;">18 × 4 = 72</div>`;
+},2000);
+}
+</script>
+</body>
+</html>
